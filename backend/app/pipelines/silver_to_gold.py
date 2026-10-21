@@ -15,9 +15,9 @@ GROUP BY day, product
 """
 
 
-def run() -> RunStats:
+async def run() -> RunStats:
     """Rebuild gold aggregates from silver. ReplacingMergeTree keeps the latest per key."""
-    with track_run("silver_to_gold") as stats:
-        summary = get_client().command(BUILD_DAILY_REVENUE)
+    async with track_run("silver_to_gold") as stats:
+        summary = await get_client().command(BUILD_DAILY_REVENUE)
         stats.processed = int(getattr(summary, "written_rows", 0) or 0)
     return stats

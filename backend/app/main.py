@@ -4,13 +4,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import bronze, health, layers, pipelines
-from app.db.postgres import close_pool
+from app.db import clickhouse, postgres
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    yield
-    close_pool()
+    await postgres.open_pool()
+    await clickhouse.open_client()
+    try:
+        yield
+    finally:
+        await clickhouse.close_client()
+        await postgres.close_pool()
 
 
 app = FastAPI(title="Medallion Architecture API", lifespan=lifespan)

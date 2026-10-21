@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     clickhouse_user: str = "medallion"
     clickhouse_password: str = "medallion"
 
+    postgres_pool_min_size: int = 1
+    postgres_pool_max_size: int = 10
+    clickhouse_pool_size: int = 20
+
     pipeline_batch_size: int = 1000
 
     @property

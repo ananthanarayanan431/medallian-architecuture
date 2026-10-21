@@ -1,24 +1,34 @@
+from psycopg import AsyncConnection
 from psycopg.rows import dict_row
-from psycopg_pool import ConnectionPool
+from psycopg_pool import AsyncConnectionPool
 
 from app.core.config import get_settings
 
-_pool: ConnectionPool | None = None
+_pool: AsyncConnectionPool[AsyncConnection[dict]] | None = None
 
 
-def get_pool() -> ConnectionPool:
+async def open_pool() -> None:
     global _pool
     if _pool is None:
-        _pool = ConnectionPool(
-            get_settings().postgres_dsn,
+        s = get_settings()
+        _pool = AsyncConnectionPool(
+            s.postgres_dsn,
+            min_size=s.postgres_pool_min_size,
+            max_size=s.postgres_pool_max_size,
             kwargs={"row_factory": dict_row},
-            open=True,
+            open=False,
         )
+        await _pool.open()
+
+
+def get_pool() -> AsyncConnectionPool[AsyncConnection[dict]]:
+    if _pool is None:
+        raise RuntimeError("Postgres pool not open; call open_pool() at startup")
     return _pool
 
 
-def close_pool() -> None:
+async def close_pool() -> None:
     global _pool
     if _pool is not None:
-        _pool.close()
+        await _pool.close()
         _pool = None

@@ -10,12 +10,12 @@ SILVER_COLUMNS = [
 ]
 
 
-def run() -> RunStats:
+async def run() -> RunStats:
     """Move unprocessed bronze rows into silver.orders, flagging bad records in bronze."""
     batch_size = get_settings().pipeline_batch_size
-    with track_run("bronze_to_silver") as stats, get_pool().connection() as conn:
-        with conn.transaction():
-            rows = conn.execute(
+    async with track_run("bronze_to_silver") as stats, get_pool().connection() as conn:
+        async with conn.transaction():
+            cur = await conn.execute(
                 """
                 SELECT id, payload FROM bronze.raw_orders
                  WHERE processed_at IS NULL
@@ -24,7 +24,8 @@ def run() -> RunStats:
                  FOR UPDATE SKIP LOCKED
                 """,
                 (batch_size,),
-            ).fetchall()
+            )
+            rows = await cur.fetchall()
 
             good, ok_ids, failures = [], [], []
             for row in rows:
@@ -37,17 +38,17 @@ def run() -> RunStats:
                 ok_ids.append(row["id"])
 
             if good:
-                get_client().insert("silver.orders", good, column_names=SILVER_COLUMNS)
+                await get_client().insert("silver.orders", good, column_names=SILVER_COLUMNS)
 
             if ok_ids:
-                conn.execute(
+                await conn.execute(
                     "UPDATE bronze.raw_orders SET processed_at = now(), error = NULL"
                     " WHERE id = ANY(%s)",
                     (ok_ids,),
                 )
             if failures:
-                with conn.cursor() as cur:
-                    cur.executemany(
+                async with conn.cursor() as cur:
+                    await cur.executemany(
                         "UPDATE bronze.raw_orders SET processed_at = now(), error = %s"
                         " WHERE id = %s",
                         failures,

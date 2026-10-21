@@ -8,10 +8,10 @@ router = APIRouter(prefix="/bronze", tags=["bronze"])
 
 
 @router.post("/orders", status_code=201)
-def ingest_orders(body: BronzeIngest) -> dict[str, int]:
+async def ingest_orders(body: BronzeIngest) -> dict[str, int]:
     """Land raw records as-is. No validation beyond 'is it JSON' — that's silver's job."""
-    with get_pool().connection() as conn, conn.cursor() as cur:
-        cur.executemany(
+    async with get_pool().connection() as conn, conn.cursor() as cur:
+        await cur.executemany(
             "INSERT INTO bronze.raw_orders (source, payload) VALUES (%s, %s)",
             [(body.source, Jsonb(r)) for r in body.records],
         )

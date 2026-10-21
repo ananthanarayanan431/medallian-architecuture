@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter
 
 from app.db.clickhouse import get_client
@@ -7,30 +9,39 @@ from app.schemas import DailyRevenue, LayerSummary
 router = APIRouter(tags=["layers"])
 
 
-@router.get("/layers/summary", response_model=LayerSummary)
-def layer_summary() -> LayerSummary:
-    with get_pool().connection() as conn:
-        bronze = conn.execute(
+async def _bronze_counts() -> dict[str, int]:
+    async with get_pool().connection() as conn:
+        cur = await conn.execute(
             """
             SELECT count(*)                                    AS total,
                    count(*) FILTER (WHERE processed_at IS NULL) AS pending,
                    count(*) FILTER (WHERE error IS NOT NULL)    AS failed
               FROM bronze.raw_orders
             """
-        ).fetchone()
+        )
+        return await cur.fetchone()
+
+
+@router.get("/layers/summary", response_model=LayerSummary)
+async def layer_summary() -> LayerSummary:
     ch = get_client()
+    bronze, silver_rows, gold_rows = await asyncio.gather(
+        _bronze_counts(),
+        ch.command("SELECT count() FROM silver.orders FINAL"),
+        ch.command("SELECT count() FROM gold.daily_revenue FINAL"),
+    )
     return LayerSummary(
         bronze_total=bronze["total"],
         bronze_pending=bronze["pending"],
         bronze_failed=bronze["failed"],
-        silver_rows=ch.command("SELECT count() FROM silver.orders FINAL"),
-        gold_rows=ch.command("SELECT count() FROM gold.daily_revenue FINAL"),
+        silver_rows=silver_rows,
+        gold_rows=gold_rows,
     )
 
 
 @router.get("/gold/daily-revenue", response_model=list[DailyRevenue])
-def daily_revenue(limit: int = 100) -> list[DailyRevenue]:
-    result = get_client().query(
+async def daily_revenue(limit: int = 100) -> list[DailyRevenue]:
+    result = await get_client().query(
         """
         SELECT toString(day) AS day, product, orders, units, toFloat64(revenue) AS revenue
           FROM gold.daily_revenue FINAL
