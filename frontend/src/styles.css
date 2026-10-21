@@ -1,0 +1,51 @@
+:root {
+  --bg: #f7f7f5;
+  --fg: #1d1d1b;
+  --muted: #6b6b66;
+  --line: #e2e1dc;
+  --panel: #ffffff;
+  --bronze: #a86b32;
+  --silver: #7c8794;
+  --gold: #c39a1d;
+  --accent: #2f5bd3;
+  --danger: #b3261e;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--fg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615;
+    --fg: #ecebe6;
+    --muted: #9b9a94;
+    --line: #2d2d2a;
+    --panel: #1f1f1d;
+  }
+}
+
+body { margin: 0; background: var(--bg); }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px; }
+header p { color: var(--muted); margin-top: -8px; }
+h2 { font-size: 1rem; margin: 32px 0 12px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid; border-radius: 8px; padding: 16px; }
+.card h2 { margin: 0; }
+.card-bronze { border-top-color: var(--bronze); }
+.card-silver { border-top-color: var(--silver); }
+.card-gold { border-top-color: var(--gold); }
+.store, .detail { color: var(--muted); font-size: 0.85rem; }
+.value { font-size: 2rem; font-weight: 600; margin: 8px 0; font-variant-numeric: tabular-nums; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; font: inherit; }
+button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+button:disabled { opacity: 0.5; cursor: progress; }
+
+table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+th { color: var(--muted); font-weight: 500; }
+td.empty { color: var(--muted); text-align: center; }
+.status-failed { color: var(--danger); }
+
+.error { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; }
